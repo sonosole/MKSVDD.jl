@@ -22,6 +22,12 @@ function Base.show(io::IO, ::MIME"text/plain", svdd::SVDD{T,N,K}) where {T, N, K
 end
 
 
+"""
+    SVDD(kernel <: XKernel, x::Matrix{Real}, C::Real, ϵ::Real=1e-3)
+
+`x` is the normal data,  `C` is the penalty coefficient (the bigger the less error allowed), 
+lagrange multipliers below the threshold `ϵ` will be discarded.
+"""
 function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
     C = T(C)
     N = size(x, 2)
@@ -142,6 +148,12 @@ function _SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3) w
 end
 
 
+"""
+    SVDD(kernel <: XKernel, xpos::Matrix{T}, xneg::Matrix{Real}, C::Real, ϵ::Real=1e-3)
+
+`xpos` is the normal data and `xneg` is the abnormal data,  `C` is the penalty coefficient (the bigger the less error allowed), 
+lagrange multipliers below the threshold `ϵ` will be discarded.
+"""
 function SVDD(kernel::KERNEL, xpos::Matrix{T}, xneg::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
     P = size(xpos,2); @assert P > 0 "no positives";
     N = size(xneg,2); @assert N > 0 "no negatives";
@@ -167,6 +179,18 @@ function SVDD(kernel::KERNEL, xpos::Matrix{T}, xneg::Matrix{T}, C::Real, ϵ::Rea
 end
 
 
+"""
+    SVDD(kernel <: XKernel, x::Matrix{Real}, y::Vector{Int}, C::Real, ϵ::Real=1e-3)
+
+`x` is the  data with label `y`,  `C` is the penalty coefficient (the bigger the less error allowed), 
+lagrange multipliers below the threshold `ϵ` will be discarded. Note that positive samples are labeled 
+with +1, while the negative samples are labeled with -1. The function:
+
+```julia
+svddlabel(num_of_pos::Int, num_of_neg::Int)::Vector{Int}
+```
+could be a helper to create labels.
+"""
 function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
     L = size(x, 2)  # number of features
     M = length(y)   # number of labels
@@ -203,7 +227,8 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e
 end
 
 
-function (Model::SVDD)(feat::Matrix{T}) where T
+# inference functor
+function (Model::SVDD{T})(feat::Matrix{T}) where T
     WᵀKW = Model.WᵀKW
     xs   = Model.svecs
     R²   = Model.R²
@@ -221,6 +246,12 @@ function (Model::SVDD)(feat::Matrix{T}) where T
 end
 
 
+"""
+    svddlabel(num_of_pos::Int, num_of_neg::Int) -> y::Vector{Int}
+
+a helper to create labels. Note that positive samples are labeled with +1, 
+while the negative samples are labeled with -1.
+"""
 function svddlabel(p::Int, n::Int)
     N = p + n
     label = Vector{Int}(undef, N)

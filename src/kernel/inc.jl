@@ -1,3 +1,6 @@
+"""
+an abstract kernel from which any concrete kernel function should inherit.
+"""
 abstract type XKernel end
 
 include("k-euclidean.jl")
