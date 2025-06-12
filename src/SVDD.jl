@@ -25,15 +25,19 @@ end
 function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
     C = T(C)
     N = size(x, 2)
-    @assert C ≥ 1 / N  begin
-        """
+    if C < 1 / N
+        BUG = """
         due to the constraints:
-            ∑ᵢ αᵢ = 1
+            ∑ᵢαᵢ= 1
             0 ≤ αᵢ ≤ C
             i = 1 ... N
-        the penalty coefficient C s.t. C ≥ 1 / N, but got $C ≥ 1 / $N
+        the penalty coefficient C s.t. C ≥ 1 / N, but got $C ≥ 1 / $N .
+        Now C would be set as 1 to make sure the code runs smoothly.
         """
+        @warn BUG
+        C = one(T)
     end
+
     a = ones(T, N, 1) ./ N
     K = kmat(kernel, x, x, obsdim=2)
     Ki = reshape(diag(K), 1, N);
@@ -60,7 +64,14 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: 
             push!(i0C, i)
         end
     end
-    j  = idS[1]
+
+    j = 0
+    if length(idS) > 0
+        j = idS[1]
+    else
+        @error "there is no support vector"
+    end
+
     αᵢ = α[i0C,:]
     Xi = x[:,i0C]
     Xs = x[:,j:j]
@@ -75,12 +86,9 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: 
 end
 
 
-function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
-    C = T(C)           # constraint 0 ≤ αᵢ ≤ C
-    N = size(x, 2)     # number of features
+function _SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3) where {T <: Real, KERNEL <: XKernel}
+    N = size(x,2)      # number of features
     M = length(y)      # number of labels
-    @assert M == N "number of features ($N) ≠ number of labels($M)"
-    @assert C > 1 / N  # ∑ᵢ(yᵢ * αᵢ) = 1
 
     y = reshape(y, N, 1)
     a = ones(T, N, 1) ./ N
@@ -96,7 +104,6 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e
     status = JuMP.optimize!(model)
     
     α = value.(a)
-    ϵ = T(ϵ)
     𝟐 = T(2)
     # 提取支撑向量
     idS = Int[]  # supports s.t. 0 < αᵢ < C
@@ -112,7 +119,15 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e
     αᵢ = α[i0C,:]
     yᵢ = y[i0C,:]
     Wᵢ = yᵢ .* αᵢ
-    j  = idS[1]   # chose one support vec
+    
+    # chose one support vec
+    j = 0
+    if length(idS) > 0
+        j = idS[1]
+    else
+        @error "there is no support vector"
+    end
+
     Ys = y[j,:]
     Xi = x[:,i0C]
     Xs = x[:,j:j]
@@ -128,9 +143,63 @@ end
 
 
 function SVDD(kernel::KERNEL, xpos::Matrix{T}, xneg::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
+    P = size(xpos,2); @assert P > 0 "no positives";
+    N = size(xneg,2); @assert N > 0 "no negatives";
+
+    if C < 1 / P
+        BUG = """
+        due to the constraints:
+            ∑ⱼyⱼαⱼ = 1       (origin)
+            ∑ₚαₚ - ∑ₙαₙ = 1  (inferred)
+            0 ≤ αⱼ ≤ C  ⇒  1 < ∑ₚαₚ ≤ C*P ⇒  C ≥ 1 / P
+        where  p ∈ {j | yⱼ = +1, j = 1 ... N}, P = |p|
+               n ∈ {j | yⱼ = -1, j = 1 ... N}
+        the penalty coefficient C s.t. C ≥ 1 / P, but got $C ≥ 1 / $P .
+        Now C would be set as 1 to make sure the code runs smoothly.
+        """
+        @warn BUG
+        C = one(T)
+    end
+
+    y = svddlabel(P, N)
     x = hcat(xpos, xneg)
-    y = svddlabel(size(xpos,2), size(xneg,2))
-    return SVDD(kernel, x, y, C, ϵ)
+    return _SVDD(kernel, x, y, C, T(ϵ))
+end
+
+
+function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
+    L = size(x, 2)  # number of features
+    M = length(y)   # number of labels
+    @assert L > 0 "no features";
+    @assert M > 0 "no labels";
+    @assert L == M "number of features ($L) ≠ number of labels($M)"
+
+    P = 0
+    for v ∈ y
+        isone(v) && (P += 1)
+    end
+    N = L - P
+
+    @assert P > 0 "no positives";
+    @assert N > 0 "no negatives";
+
+    C = T(C)
+    if C < 1 / P
+        BUG = """
+        due to the constraints:
+            ∑ⱼyⱼαⱼ = 1       (origin)
+            ∑ₚαₚ - ∑ₙαₙ = 1  (inferred)
+            0 ≤ αⱼ ≤ C  ⇒  1 < ∑ₚαₚ ≤ C*P ⇒  C ≥ 1 / P
+        where  p ∈ {j | yⱼ = +1, j = 1 ... N}, P = |p|
+               n ∈ {j | yⱼ = -1, j = 1 ... N}
+        the penalty coefficient C s.t. C ≥ 1 / P, but got $C ≥ 1 / $P .
+        Now C would be set as 1 to make sure the code runs smoothly.
+        """
+        @warn BUG
+        C = one(T)
+    end
+
+    return _SVDD(kernel, x, y, C, T(ϵ))
 end
 
 
