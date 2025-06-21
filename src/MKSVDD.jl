@@ -1,4 +1,4 @@
-# module MKSVDD
+module MKSVDD
 
 
 using Distances
@@ -11,4 +11,4 @@ include("kernel/inc.jl")
 include("SVDD.jl")
 
 
-# end # module MKSVDD
+end # module MKSVDD
