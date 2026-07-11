@@ -23,12 +23,12 @@ end
 
 
 """
-    SVDD(kernel <: XKernel, x::Matrix{Real}, C::Real, ϵ::Real=1e-3)
+    SVDD(kernel <: XKernel, x::Matrix{Real}, C::Real, ϵ::Real=1e-3; verbose::Bool=false)
 
 `x` is the normal data,  `C` is the penalty coefficient (the bigger the less error allowed), 
 lagrange multipliers below the threshold `ϵ` will be discarded.
 """
-function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
+function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3; verbose::Bool=false) where {T <: Real, KERNEL <: XKernel}
     C = T(C)
     N = size(x, 2)
     if C < 1 / N
@@ -49,7 +49,7 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: 
     Ki = reshape(diag(K), 1, N);
 
     # 优化模型参数
-    model = JuMP.Model(optimizer_with_attributes(COSMO.Optimizer, "verbose" => true));
+    model = JuMP.Model(optimizer_with_attributes(COSMO.Optimizer, "verbose" => verbose));
     @variable(model, a[1:N]);
     @objective(model, Min, sum(a' * K * a) - sum(Ki * a));
     @constraint(model, sum(a) == 1);
@@ -92,7 +92,7 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: 
 end
 
 
-function _SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3) where {T <: Real, KERNEL <: XKernel}
+function _SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3, verbose::Bool=false) where {T <: Real, KERNEL <: XKernel}
     N = size(x,2)      # number of features
     M = length(y)      # number of labels
 
@@ -102,7 +102,7 @@ function _SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3) w
     Ki = reshape(diag(K), 1, N)
 
     # 优化模型参数
-    model = JuMP.Model(optimizer_with_attributes(COSMO.Optimizer, "verbose" => true));
+    model = JuMP.Model(optimizer_with_attributes(COSMO.Optimizer, "verbose" => verbose));
     @variable(model, a[1:N])
     @objective(model, Min, sum(a' * K * a) - sum(Ki * a));
     @constraint(model, sum(y .* a) == 1)
@@ -149,12 +149,12 @@ end
 
 
 """
-    SVDD(kernel <: XKernel, xpos::Matrix{T}, xneg::Matrix{Real}, C::Real, ϵ::Real=1e-3)
+    SVDD(kernel <: XKernel, xpos::Matrix{T}, xneg::Matrix{Real}, C::Real, ϵ::Real=1e-3; verbose::Bool=false)
 
 `xpos` is the normal data and `xneg` is the abnormal data,  `C` is the penalty coefficient (the bigger the less error allowed), 
 lagrange multipliers below the threshold `ϵ` will be discarded.
 """
-function SVDD(kernel::KERNEL, xpos::Matrix{T}, xneg::Matrix{T}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
+function SVDD(kernel::KERNEL, xpos::Matrix{T}, xneg::Matrix{T}, C::Real, ϵ::Real=1e-3; verbose::Bool=false) where {T <: Real, KERNEL <: XKernel}
     P = size(xpos,2); @assert P > 0 "no positives";
     N = size(xneg,2); @assert N > 0 "no negatives";
 
@@ -175,12 +175,12 @@ function SVDD(kernel::KERNEL, xpos::Matrix{T}, xneg::Matrix{T}, C::Real, ϵ::Rea
 
     y = svddlabel(P, N)
     x = hcat(xpos, xneg)
-    return _SVDD(kernel, x, y, C, T(ϵ))
+    return _SVDD(kernel, x, y, C, T(ϵ), verbose)
 end
 
 
 """
-    SVDD(kernel <: XKernel, x::Matrix{Real}, y::Vector{Int}, C::Real, ϵ::Real=1e-3)
+    SVDD(kernel <: XKernel, x::Matrix{Real}, y::Vector{Int}, C::Real, ϵ::Real=1e-3; verbose::Bool=false)
 
 `x` is the  data with label `y`,  `C` is the penalty coefficient (the bigger the less error allowed), 
 lagrange multipliers below the threshold `ϵ` will be discarded. Note that positive samples are labeled 
@@ -191,7 +191,7 @@ svddlabel(num_of_pos::Int, num_of_neg::Int)::Vector{Int}
 ```
 could be a helper to create labels.
 """
-function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e-3) where {T <: Real, KERNEL <: XKernel}
+function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e-3; verbose::Bool=false) where {T <: Real, KERNEL <: XKernel}
     L = size(x, 2)  # number of features
     M = length(y)   # number of labels
     @assert L > 0 "no features";
@@ -223,7 +223,7 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e
         C = one(T)
     end
 
-    return _SVDD(kernel, x, y, C, T(ϵ))
+    return _SVDD(kernel, x, y, C, T(ϵ), verbose)
 end
 
 
