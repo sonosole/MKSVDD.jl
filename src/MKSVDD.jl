@@ -27,5 +27,7 @@ include("SVDD.jl")
 export SVDD
 export svddlabel
 
+include("SMO-SVDD.jl")
+export SMOSVDD
 
 end # module MKSVDD
