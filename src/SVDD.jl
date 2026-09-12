@@ -60,20 +60,20 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, C::Real, ϵ::Real=1e-3; verbose::Boo
     ϵ = T(ϵ)
     𝟐 = T(2)
     # 提取支撑向量
-    idS = Int[]  # =R s.t. 0 < αᵢ < C
+    onR = Int[]  # =R s.t. 0 < αᵢ < C
     i0C = Int[]  # ≥R s.t. 0 < αᵢ ≤ C
     for (i, αᵢ) ∈ enumerate(α)
         if ϵ < αᵢ
-            if αᵢ < C - ϵ
-                push!(idS, i)
+            if αᵢ < C
+                push!(onR, i)
             end
             push!(i0C, i)
         end
     end
 
     j = 0
-    if length(idS) > 0
-        j = idS[1]
+    if length(onR) > 0
+        j = first(onR)
     else
         @error "there is no support vector"
     end
@@ -112,12 +112,12 @@ function _SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3, v
     α = value.(a)
     𝟐 = T(2)
     # 提取支撑向量
-    idS = Int[]  # supports s.t. 0 < αᵢ < C
-    i0C = Int[]  # outers s.t.   0 < αᵢ ≤ C
+    onR = Int[]  # =R s.t. 0 < αᵢ < C
+    i0C = Int[]  # ≥R s.t. 0 < αᵢ ≤ C
     for (i, αᵢ) ∈ enumerate(α)
         if ϵ < αᵢ
-            if αᵢ < C - ϵ
-                push!(idS, i)
+            if αᵢ < C
+                push!(onR, i)
             end
             push!(i0C, i)
         end
@@ -128,13 +128,12 @@ function _SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3, v
     
     # chose one support vec
     j = 0
-    if length(idS) > 0
-        j = idS[1]
+    if length(onR) > 0
+        j = first(onR)
     else
         @error "there is no support vector"
     end
 
-    Ys = y[j,:]
     Xi = x[:,i0C]
     Xs = x[:,j:j]
 
@@ -239,10 +238,10 @@ function (Model::SVDD{T})(feat::Matrix{T}) where T
     for i ∈ 1:N
         x = feat[:, i:i]
         Kxx = kmat(κ, x,  x, obsdim=2)
-        Kis = kmat(κ, xs, x, obsdim=2)
-        Δ²[i] = first(Kxx - 𝟐W' * Kis .+ WᵀKW) - R²
+        Ksx = kmat(κ, xs, x, obsdim=2)
+        Δ²[i] = first(Kxx - 𝟐W' * Ksx)
     end
-    return Δ²
+    return Δ² .+ (WᵀKW - R²)
 end
 
 
