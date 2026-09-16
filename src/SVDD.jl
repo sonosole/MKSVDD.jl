@@ -174,7 +174,7 @@ function SVDD(kernel::KERNEL, xpos::Matrix{T}, xneg::Matrix{T}, C::Real, ϵ::Rea
 
     y = svddlabel(P, N)
     x = hcat(xpos, xneg)
-    return _SVDD(kernel, x, y, C, T(ϵ), verbose)
+    return _SVDD(kernel, x, y, T(C), T(ϵ), verbose)
 end
 
 
@@ -206,7 +206,6 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e
     @assert P > 0 "no positives";
     @assert N > 0 "no negatives";
 
-    C = T(C)
     if C < 1 / P
         BUG = """
         due to the constraints:
@@ -222,7 +221,7 @@ function SVDD(kernel::KERNEL, x::Matrix{T}, y::Vector{Int}, C::Real, ϵ::Real=1e
         C = one(T)
     end
 
-    return _SVDD(kernel, x, y, C, T(ϵ), verbose)
+    return _SVDD(kernel, x, y, T(C), T(ϵ), verbose)
 end
 
 
