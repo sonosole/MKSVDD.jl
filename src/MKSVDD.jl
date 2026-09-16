@@ -26,6 +26,7 @@ export kmat
 include("SVDD.jl")
 export SVDD
 export svddlabel
+export radius, alpha
 
 include("SMO-SVDD.jl")
 export SMOSVDD

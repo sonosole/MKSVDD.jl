@@ -16,6 +16,24 @@ end
 @inline nsvs(S::SVDD) = length(S.𝟐W)
 
 
+"""
+    alpha(m::SVDD{T}) -> α::Matrix{T}
+Return the lagrange multipliers
+"""
+function alpha(m::SVDD{T}) where T
+    return m.𝟐W .* T(0.5)
+end
+
+
+"""
+    radius(m::SVDD{T}) -> r::T
+Returns the radius of the hypersphere
+"""
+function radius(m::SVDD)
+    return sqrt(m.R²)
+end
+
+
 function Base.show(io::IO, ::MIME"text/plain", svdd::SVDD{T,N,K}) where {T, N, K <: XKernel}
     C = nsvs(svdd)
     print(io, "SVDD{$T,$N,$K} with $C support vectors")
