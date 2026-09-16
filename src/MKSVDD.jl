@@ -1,34 +1,25 @@
 module MKSVDD
 
-
 using Distances
 using JuMP
 using COSMO
 
-import LinearAlgebra: diag
+import LinearAlgebra: diag, lmul!
 
-include("kernel/inc.jl")
-export ChebyK
-export CityK
-export CosK
-export EucK
-export HammingK
-export JaccardK
-export KLDivK
-export MAEK
-export MSEK
-export MinkowskiK
-export NRMSEK
-export RBFK
-export RMSEK
-export kmat
+include("rules.jl")
+export Mercer
+export CondNegDefDist
+export ispsd
 
 include("SVDD.jl")
 export SVDD
-export svddlabel
-export radius, alpha
+export radius, alphas, svddprob
 
-include("SMO-SVDD.jl")
-export SMOSVDD
+include("SVDD-SMO.jl")
+export smosvdd
+
+include("SVDD-Optimizer.jl")
+export svdd, svddlabel
+
 
 end # module MKSVDD

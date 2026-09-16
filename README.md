@@ -16,42 +16,31 @@ Pkg.add("MKSVDD")
 
 ## Main Features
 
-+ unary classification with only normal datas
-+ binary classification with both positive and negative datas
-+ multi-kernel functions suffixed with K
-  + ChebyK
-  + CityK
-  + CosK
-  + EucK
-  + HammingK
-  + JaccardK
-  + KLDivK
-  + MAEK
-  + MSEK
-  + MinkowskiK
-  + NRMSEK
-  + RBFK
-  + RMSEK
++ abnormal detection with only normal datas
++ abnormal detection with both positive and negative datas
++ any kernel functions provided by user
 
 ## APIs
 
-### Unary Classification Case
+### You Only Have Positive Datas
+
+The definition of positive samples varies with the situation. For example, in a factory, a product rarely fails, so good quality products are easy to access, so good products are positive samples. But if you are going to detect a spoken keyword like "Hi Siri", then it's treated as positive sample.
 
 ```julia
-SVDD(kernel::K, x::Matrix, C::Real, ϵ::Real=1e-3) where {K <: XKernel}
+svdd(kernel::Function, x::Matrix, C::Real, ϵ::Real=1e-3, verbose=false)
 ```
 
 of which, `x` is the normal data,  `C` is the penalty coefficient (the bigger the less error allowed), lagrange multipliers below the threshold `ϵ` will be discarded.
 
-### Binary Classification Case
+### You Have Both Positive and Negtive Datas
 
 #### Having Labels Explicitly
 
 ```julia
-SVDD(kernel::K, x::Matrix, y::Vector{Int}, C::Real, ϵ::Real=1e-3) where {K <: XKernel}
+svdd(kernel::Function, x::Matrix, y::Vector{Int}, C::Real, ϵ::Real=1e-3, verbose=false)
 ```
 
-of which, `x` is the  data with label `y`,  `C` is the penalty coefficient (the bigger the less error allowed), lagrange multipliers below the threshold `ϵ` will be discarded. Note that positive samples are labeled with +1, while the negative samples are labeled with -1. The function:
+of which, `x` is the data with column-wise label `y`,  `C` is the penalty coefficient (the bigger the less error allowed), lagrange multipliers below the threshold `ϵ` will be discarded. Note that positive samples are labeled with +1, while the negative samples are labeled with -1. The function:
 
 ```julia
 svddlabel(num_of_pos::Int, num_of_neg::Int)::Vector{Int}
@@ -62,7 +51,7 @@ could be a helper to make labels.
 #### Having Labels Implicitly
 
 ```julia
-SVDD(kernel::K, xpos::Matrix, xneg::Matrix, C::Real, ϵ::Real=1e-3) where {K <: XKernel}
+svdd(kernel::Function, xpos::Matrix, xneg::Matrix, C::Real, ϵ::Real=1e-3)
 ```
 
 of which, `xpos` is the normal data and `xneg` is the abnormal data,  `C` is the penalty coefficient (the bigger the less error allowed), lagrange multipliers below the threshold `ϵ` will be discarded.
@@ -73,6 +62,7 @@ Let's prepare a plotting function
 
 ```julia
 using Plots
+default(show=true)
 
 # plot only positives
 function plotit(model::SVDD, xp::Matrix{T}, b::Real, k::String) where T
@@ -117,19 +107,22 @@ end
 finaly fit the data and show the effect
 
 ```julia
-begin
-    C  = 15.5       # penalty coefficient
-    kf = RBFK(1.3)  # gaussian kernel
+using Distances
 
+begin
+    C  = 0.1       # penalty coefficient
+    r = inv(2.1)
+    kernel(x,y) = exp.(-r .* pairwise(SqEuclidean(), x, y, dims=2))
+  
     # only using positive samples
-    model = SVDD(kf, xp, C)
-    plt1 = plotit(model, xp, xn, 7, "using only positives")
+    model1 = svdd(kernel, xp, C)
+    plt1 = plotit(model1, xp, xn, 7, "using only positives")
 
     # using both positives and negtives
-    model = SVDD(kf, hcat(xp,xn), svddlabel(size(xp,2), size(xn,2)), C)
-    plt2 = plotit(model, xp, xn, 7, "using positives & negatives")
+    model2 = svdd(kernel, hcat(xp,xn), svddlabel(size(xp,2), size(xn,2)), C)
+    plt2 = plotit(model2, xp, xn, 7, "using positives & negatives")
 
-    plot(plt1, plt2, layout=(1,2), axis=nothing, framestyle=:none)
+    plot(plt1, plt2, layout=(1,2), axis=nothing, framestyle=:none, display=true)
 end
 ```
 
@@ -139,8 +132,8 @@ where the black line is the contour with a value of zero, the green dots are pos
 
 ## NOTICE
 
-`Float16` data type is not enough, it causes problem
+`Float16` data type is not enough for `COSMO.Optimizer`, it causes problem
 
 > ERROR: Objective function is not convex.
 
-So use `Float32` or `Float64` instead.
+So use `Float32` or `Float64` instead. But it's okay if you use smosvdd with `Float16`.
