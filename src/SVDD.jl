@@ -239,9 +239,12 @@ function (Model::SVDD{T})(feat::Matrix{T}) where T
         x = feat[:, i:i]
         Kxx = kmat(κ, x,  x, obsdim=2)
         Ksx = kmat(κ, xs, x, obsdim=2)
-        Δ²[i] = first(Kxx - 𝟐W' * Ksx)
+        Δ²[i] = first(Kxx - 𝟐W' * Ksx) + WᵀKW
     end
-    return Δ² .+ (WᵀKW - R²)
+    # Δ² .> R² ⇒ out of sphere
+    # Δ² .≡ R² ⇒ on sphere surface
+    # Δ² .< R² ⇒ inside sphere
+    return Δ² .- R²
 end
 
 
