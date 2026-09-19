@@ -54,7 +54,7 @@ function svdd(kernel::Function, x::Matrix{T}, C::Real, ϵ::Real=1e-3; verbose::B
     αᵀKα = αᵢ' * Kij * αᵢ
     R²   = Kss - 𝟐 * αᵢ' * Kis + αᵀKα
 
-    return SVDD{T,1}(first(R²), first(αᵀKα), αᵢ, Xi, kernel)
+    return SVDD{T,1}(first(R²), first(αᵀKα), reshape(αᵢ,1,:), Xi, kernel)
 end
 
 
@@ -97,7 +97,7 @@ function _svdd(kernel::Function, x::Matrix{T}, y::Vector{Int}, C::T, ϵ::T=1e-3,
     wᵀKw = wᵢ' * Kij * wᵢ
     R²   = Kss - 𝟐 * wᵢ' * Kis + wᵀKw
 
-    return SVDD{T,2}(first(R²), first(wᵀKw), wᵢ, Xi, kernel)
+    return SVDD{T,2}(first(R²), first(wᵀKw), reshape(wᵢ,1,:), Xi, kernel)
 end
 
 

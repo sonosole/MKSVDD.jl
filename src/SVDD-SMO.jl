@@ -178,7 +178,7 @@ function smosvdd(kernel::Function,
 
     αᵢ = α[i⁰ᶜ, :]
     Xᵢ = x[:, i⁰ᶜ]
-    return SVDD{T,1}(R², αᵀKα, αᵢ, Xᵢ, kernel)
+    return SVDD{T,1}(R², αᵀKα, reshape(αᵢ,1,:), Xᵢ, kernel)
 end
 
 
@@ -326,5 +326,5 @@ function rawsmosvdd(kernel::Function,
 
     αᵢ = α[i⁰ᶜ, :]
     Xᵢ = x[:, i⁰ᶜ]
-    return SVDD{T,1}(R², αᵀKα, αᵢ, Xᵢ, kernel), LL
+    return SVDD{T,1}(R², αᵀKα, reshape(αᵢ,1,:), Xᵢ, kernel), LL
 end

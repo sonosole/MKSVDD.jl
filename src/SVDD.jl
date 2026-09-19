@@ -1,18 +1,18 @@
 mutable struct SVDD{T <: AbstractFloat, N}
     R²     :: T
     wᵀKw   :: T
-    𝟐w     :: Matrix{T}
+    𝟐wᵀ    :: Matrix{T}
     svecs  :: Matrix{T}
     kernel :: Function
     function SVDD{T,N}(R²::T,
                      wᵀKw::T,
-                        w::Matrix{T},
+                       wᵀ::Matrix{T},
                     svecs::Matrix{T},
                  xykernel::Function) where {T <: AbstractFloat, N}
         @assert N==1 || N==2 begin
             "only support type SVDD{T,1} or SVDD{T,2}, got SVDD{T,$N}"
         end
-        new{T,N}(R², wᵀKw, lmul!(T(2),w), svecs, xykernel)
+        new{T,N}(R², wᵀKw, lmul!(T(2),wᵀ), svecs, xykernel)
     end
 end
 
@@ -20,13 +20,13 @@ end
 """
 return the number of support vectors
 """
-@inline nsvs(S::SVDD) = length(S.𝟐w)
+@inline nsvs(S::SVDD) = length(S.𝟐wᵀ)
 
 
 """
 return the number of support vectors
 """
-Base.length(S::SVDD) = length(S.𝟐w)
+Base.length(S::SVDD) = length(S.𝟐wᵀ)
 
 
 """
@@ -34,7 +34,7 @@ Base.length(S::SVDD) = length(S.𝟐w)
 Return the lagrange multipliers
 """
 @inline function alphas(m::SVDD{T}) where T
-    return m.𝟐w .* T(0.5)
+    return m.𝟐wᵀ .* T(0.5)
 end
 
 
@@ -67,7 +67,7 @@ end
 function Base.abs(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
     wᵀKw = Model.wᵀKw
     xs   = Model.svecs
-    𝟐w   = Model.𝟐w
+    𝟐wᵀ  = Model.𝟐wᵀ
     κ    = Model.kernel
     N  = size(feat, 2)
     Δ² = Vector{T}(undef, N) # Δ² = ║x - c║²
@@ -75,7 +75,7 @@ function Base.abs(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
         x = feat[:, i:i]
         Kxx = κ(x,  x)
         Ksx = κ(xs, x)
-        Δ²[i] = first(Kxx - 𝟐w' * Ksx) + wᵀKw
+        Δ²[i] = first(Kxx - 𝟐wᵀ * Ksx) + wᵀKw
     end
     return sqrt!(Δ²)
 end
@@ -84,7 +84,7 @@ end
 function Base.abs2(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
     wᵀKw = Model.wᵀKw
     xs   = Model.svecs
-    𝟐w   = Model.𝟐w
+    𝟐wᵀ  = Model.𝟐wᵀ
     κ    = Model.kernel
     N  = size(feat, 2)
     Δ² = Vector{T}(undef, N) # Δ² = ║x - c║²
@@ -92,7 +92,7 @@ function Base.abs2(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
         x = feat[:, i:i]
         Kxx = κ(x,  x)
         Ksx = κ(xs, x)
-        Δ²[i] = first(Kxx - 𝟐w' * Ksx) + wᵀKw
+        Δ²[i] = first(Kxx - 𝟐wᵀ * Ksx) + wᵀKw
     end
     return Δ²
 end
