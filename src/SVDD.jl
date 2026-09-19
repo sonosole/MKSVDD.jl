@@ -33,7 +33,7 @@ Base.length(S::SVDD) = length(S.𝟐w)
     alphas(m::SVDD{T}) -> α::Matrix{T}
 Return the lagrange multipliers
 """
-function alphas(m::SVDD{T}) where T
+@inline function alphas(m::SVDD{T}) where T
     return m.𝟐w .* T(0.5)
 end
 
@@ -42,10 +42,13 @@ end
     radius(m::SVDD{T}) -> r::T
 Returns the radius of the hypersphere
 """
-function radius(m::SVDD)
+@inline function radius(m::SVDD)
     return sqrt(m.R²)
 end
 
+@inline function radius²(m::SVDD)
+    return m.R²
+end
 
 function Base.show(io::IO, ::MIME"text/plain", svdd::SVDD{T,N}) where {T, N}
     C = nsvs(svdd)
@@ -54,49 +57,132 @@ function Base.show(io::IO, ::MIME"text/plain", svdd::SVDD{T,N}) where {T, N}
 end
 
 
-# inference functor
-function (Model::SVDD)(feat::Matrix{T}) where {T <: AbstractFloat}
+# inplace sqrt
+@inline function sqrt!(x::AbstractArray)
+    x .= sqrt.(x)
+    return x
+end
+
+
+function Base.abs(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
     wᵀKw = Model.wᵀKw
     xs   = Model.svecs
-    R²   = Model.R²
     𝟐w   = Model.𝟐w
     κ    = Model.kernel
     N  = size(feat, 2)
-    Δ² = Vector{T}(undef, N)
+    Δ² = Vector{T}(undef, N) # Δ² = ║x - c║²
     for i ∈ 1:N
         x = feat[:, i:i]
         Kxx = κ(x,  x)
         Ksx = κ(xs, x)
         Δ²[i] = first(Kxx - 𝟐w' * Ksx) + wᵀKw
     end
-    # Δ² .> R² ⇒ out of sphere
-    # Δ² .≡ R² ⇒ on sphere surface
-    # Δ² .< R² ⇒ inside sphere
+    return sqrt!(Δ²)
+end
+
+
+function Base.abs2(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
+    wᵀKw = Model.wᵀKw
+    xs   = Model.svecs
+    𝟐w   = Model.𝟐w
+    κ    = Model.kernel
+    N  = size(feat, 2)
+    Δ² = Vector{T}(undef, N) # Δ² = ║x - c║²
+    for i ∈ 1:N
+        x = feat[:, i:i]
+        Kxx = κ(x,  x)
+        Ksx = κ(xs, x)
+        Δ²[i] = first(Kxx - 𝟐w' * Ksx) + wᵀKw
+    end
+    return Δ²
+end
+
+
+
+"""
+    absratio(Model::SVDD, x::Matrix) -> Δ / R
+Return `Δ / R` ∈ [0,+∞], where 
++ `Δ` is the distance of `x` away from the center of hypersphere.
++ `R` is the radius of hypersphere.
+"""
+function absratio(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R = radius(Model)
+    Δ = abs(Model, x)
+    return Δ .* inv(R)
+end
+
+
+"""
+    abs2ratio(Model::SVDD, x::Matrix) -> Δ² / R²
+Return `Δ² / R²` ∈ [0,+∞], where 
++ `Δ` is the distance of `x` away from the center of hypersphere.
++ `R` is the radius of hypersphere.
+"""
+function abs2ratio(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R² = radius²(Model)
+    Δ² = abs2(Model, x)
+    return Δ² .* inv(R²)
+end
+
+
+# inference functor
+function Base.diff(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R = radius(Model)
+    Δ = abs(Model, x)
+    return Δ .- R
+end
+
+function sqdiff(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R² = radius²(Model)
+    Δ² = abs2(Model, x)
     return Δ² .- R²
 end
 
 
 """
-    svddprob(θ::SVDD, x::Matrix{<:AbstractFloat}, γ::Real=1.0f0)
-A kind of proxy probability of `p(x|θ) = exp(-γ Δ²/R²)`, where
+    svddprob(θ::SVDD, x::Matrix{<:AbstractFloat}, γ::Real=1.0f0; type::String="gaussian")
+A kind of proxy probability of `P(x|θ) ∈ [0,1]`, where
 + `γ` > 0 tunes the flatness of the distribution, the smaller the flatter.
 + `Δ` is the distance away from the center of hypersphere.
 + `R` is the radius of hypersphere.
+# Probability `type`
++ "gaussian",   `P(x|θ) = exp(-γ Δ²/R²)`
++ "laplace",    `P(x|θ) = exp(-γ Δ/R)`
++ "triangle",   `P(x|θ) = max(0, 1 - γ Δ/R)`
++ "sqtriangle", `P(x|θ) = max(0, 1 - γ Δ²/R²)`
++ "dirac",      `P(x|θ) = 𝟙[γΔ ≤ R]`
 """
-function svddprob(Model::SVDD, feat::Matrix{T}, r::Real=1.0f0) where {T <: AbstractFloat}
-    wᵀKw = Model.wᵀKw
-    xs   = Model.svecs
-    R²   = Model.R²
-    𝟐w   = Model.𝟐w
-    κ    = Model.kernel
-    N  = size(feat, 2)
-    Δ² = Vector{T}(undef, N)
-    for i ∈ 1:N
-        x = feat[:, i:i]
-        Kxx = κ(x,  x)
-        Ksx = κ(xs, x)
-        Δ²[i] = first(Kxx - 𝟐w' * Ksx) + wᵀKw
+function svddprob(Model::SVDD, x::Matrix{T}, g::Real=1.0f0; type::String="gaussian") where {T <: AbstractFloat}
+    o  = zero(T)
+    l  = one(T)
+    γ  = abs(T(g))
+    R  = radius(Model)
+    R² = radius²(Model)
+    if isequal(type, "gaussian") # exp(-γ Δ²/R²)
+        r = - γ / R²
+        Δ² = abs2(Model, x)
+        return @. exp(r * Δ²)
     end
-    γ = T(-abs(r)) / R²
-    return exp.(γ .* Δ²)
+    if isequal(type, "laplace") # exp(-γ Δ/R)
+        r = - γ / R
+        Δ = abs(Model, x)
+        return @. exp(r * Δ)
+    end
+    if isequal(type, "triangle") # max(0, 1 - γ Δ/R)
+        Δ = abs(Model, x)
+        r = -clamp(γ, o, l) / R
+        return @. max(o, l + r * Δ)
+    end
+    if isequal(type, "sqtriangle") # max(0, 1 - γ Δ²/R²)
+        Δ² = abs2(Model, x)
+        r = -clamp(γ, o, l) / R²
+        return @. max(o, l + r * Δ²)
+    end
+    if isequal(type, "dirac") # 1 if γΔ ≤ R, otherwise 0
+        r = clamp(γ, o, l)
+        Δ² = abs2(Model, x)
+        return @. r*Δ² ≤ R²
+    end
+    error("$type is not supported yet")
 end
+
