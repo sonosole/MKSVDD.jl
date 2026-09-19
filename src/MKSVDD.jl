@@ -13,7 +13,8 @@ export ispsd
 
 include("SVDD.jl")
 export SVDD
-export radius, alphas, svddprob
+export radius, radius², nsvs, alphas
+export absratio, abs2ratio, sqdiff, svddprob
 
 include("SVDD-SMO.jl")
 export smosvdd

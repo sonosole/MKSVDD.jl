@@ -18,3 +18,10 @@ COSMO = "1e616198-aa4e-51ec-90a2-23f7fbd31d8d"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
+
+[targets]
+test = ["Test", "Distances"]
