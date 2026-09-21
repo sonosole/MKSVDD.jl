@@ -18,41 +18,45 @@ end
 
 
 """
+    Return the number of support vectors
+"""
+@inline nsvs(model::SVDD) = length(model.𝟐wᵀ)
+
+"""
+    Return the support vectors
+"""
+@inline svs(model::SVDD) = model.svecs
+
+"""
 return the number of support vectors
 """
-@inline nsvs(S::SVDD) = length(S.𝟐wᵀ)
-
-
-"""
-return the number of support vectors
-"""
-Base.length(S::SVDD) = length(S.𝟐wᵀ)
+Base.length(model::SVDD) = length(model.𝟐wᵀ)
 
 
 """
     alphas(m::SVDD{T}) -> α::Matrix{T}
 Return the lagrange multipliers
 """
-@inline function alphas(m::SVDD{T}) where T
-    return m.𝟐wᵀ .* T(0.5)
+@inline function alphas(model::SVDD{T}) where T
+    return model.𝟐wᵀ .* T(0.5)
 end
 
 
 """
-    radius(m::SVDD{T}) -> r::T
+    radius(model::SVDD{T}) -> r::T
 Returns the radius of the hypersphere
 """
-@inline function radius(m::SVDD)
-    return sqrt(m.R²)
+@inline function radius(model::SVDD)
+    return sqrt(model.R²)
 end
 
-@inline function radius²(m::SVDD)
-    return m.R²
+@inline function radius²(model::SVDD)
+    return model.R²
 end
 
-function Base.show(io::IO, ::MIME"text/plain", svdd::SVDD{T,N}) where {T, N}
-    C = nsvs(svdd)
-    R = radius(svdd)
+function Base.show(io::IO, ::MIME"text/plain", model::SVDD{T,N}) where {T, N}
+    C = nsvs(model)
+    R = radius(model)
     print(io, "SVDD{$T,$N} with $C support vectors, radius=$R")
 end
 
@@ -64,11 +68,11 @@ end
 end
 
 
-function Base.abs(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
-    wᵀKw = Model.wᵀKw
-    xs   = Model.svecs
-    𝟐wᵀ  = Model.𝟐wᵀ
-    κ    = Model.kernel
+function Base.abs(model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
+    wᵀKw = model.wᵀKw
+    xs   = model.svecs
+    𝟐wᵀ  = model.𝟐wᵀ
+    κ    = model.kernel
     N  = size(feat, 2)
     Δ² = Vector{T}(undef, N) # Δ² = ║x - c║²
     for i ∈ 1:N
@@ -81,11 +85,11 @@ function Base.abs(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
 end
 
 
-function Base.abs2(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
-    wᵀKw = Model.wᵀKw
-    xs   = Model.svecs
-    𝟐wᵀ  = Model.𝟐wᵀ
-    κ    = Model.kernel
+function Base.abs2(model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
+    wᵀKw = model.wᵀKw
+    xs   = model.svecs
+    𝟐wᵀ  = model.𝟐wᵀ
+    κ    = model.kernel
     N  = size(feat, 2)
     Δ² = Vector{T}(undef, N) # Δ² = ║x - c║²
     for i ∈ 1:N
@@ -98,43 +102,118 @@ function Base.abs2(Model::SVDD, feat::Matrix{T}) where {T <: AbstractFloat}
 end
 
 
+"""
+    min(model::SVDD, x::Matrix{<:AbstractFloat})
+Return the nearest feature of `x` from sphere center of `model`
+"""
+function Base.min(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    Δ² = abs2(model, x)
+    i  = argmin(Δ²)
+    return x[:,i:i]
+end
+
 
 """
-    absratio(Model::SVDD, x::Matrix) -> Δ / R
+    minratio(model::SVDD, x::Matrix{<:AbstractFloat}) -> x[:,i:i], Δ[i]/R
++ `x[:,i:i]` the nearest feature (with index `i`) of `x` from sphere center of `model`
++ `Δ` is the distance of `x` away from the center of hypersphere.
++ `R` is the radius of hypersphere.
+"""
+function minratio(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R² = radius²(model)
+    Δ² = abs2(model, x)
+    i  = argmin(Δ²)
+    return x[:,i:i], sqrt(Δ²[i]/R²)
+end
+
+"""
+    max(model::SVDD, x::Matrix{<:AbstractFloat})
+Return the farest feature of `x` from sphere center of `model`
+"""
+function Base.max(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    Δ² = abs2(model, x)
+    i  = argmax(Δ²)
+    return x[:,i:i]
+end
+
+
+"""
+    maxratio(model::SVDD, x::Matrix{<:AbstractFloat}) -> x[:,i:i], Δ[i]/R
++ `x[:,i:i]` the farest feature (with index `i`) of `x` from sphere center of `model`
++ `Δ` is the distance of `x` away from the center of hypersphere.
++ `R` is the radius of hypersphere.
+"""
+function maxratio(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R² = radius²(model)
+    Δ² = abs2(model, x)
+    i  = argmax(Δ²)
+    return x[:,i:i], sqrt(Δ²[i]/R²)
+end
+
+
+"""
+    argmin(model::SVDD, x::Matrix{<:AbstractFloat}) -> index::Int
+Return the nearest feature `index` of `x` from sphere center of `model`
+"""
+function Base.argmin(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    Δ² = abs2(model, x)
+    return argmin(Δ²)
+end
+
+"""
+    argmax(model::SVDD, x::Matrix{<:AbstractFloat}) -> index::Int
+Return the farest feature `index` of `x` from sphere center of `model`
+"""
+function Base.argmax(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    Δ² = abs2(model, x)
+    return argmax(Δ²)
+end
+
+
+"""
+    absratio(model::SVDD, x::Matrix) -> Δ / R
 Return `Δ / R` ∈ [0,+∞], where 
 + `Δ` is the distance of `x` away from the center of hypersphere.
 + `R` is the radius of hypersphere.
 """
-function absratio(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
-    R = radius(Model)
-    Δ = abs(Model, x)
+function absratio(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R = radius(model)
+    Δ = abs(model, x)
     return Δ .* inv(R)
 end
 
 
 """
-    abs2ratio(Model::SVDD, x::Matrix) -> Δ² / R²
+    abs2ratio(model::SVDD, x::Matrix) -> Δ² / R²
 Return `Δ² / R²` ∈ [0,+∞], where 
 + `Δ` is the distance of `x` away from the center of hypersphere.
 + `R` is the radius of hypersphere.
 """
-function abs2ratio(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
-    R² = radius²(Model)
-    Δ² = abs2(Model, x)
+function abs2ratio(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R² = radius²(model)
+    Δ² = abs2(model, x)
     return Δ² .* inv(R²)
 end
 
 
-# inference functor
-function Base.diff(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
-    R = radius(Model)
-    Δ = abs(Model, x)
+"""
+    diff(model::SVDD, x::Matrix{T}) -> (Δ .- R)
+Return the result of (Δ .- R) where `Δ` is difference of `x` from the sphere center `R`.
+"""
+function Base.diff(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R = radius(model)
+    Δ = abs(model, x)
     return Δ .- R
 end
 
-function sqdiff(Model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
-    R² = radius²(Model)
-    Δ² = abs2(Model, x)
+
+"""
+    sqdiff(model::SVDD, x::Matrix{T}) -> (Δ² .- R)
+Return the result of (Δ² .- R) where `Δ` is difference of `x` from the sphere center `R`.
+"""
+function sqdiff(model::SVDD, x::Matrix{T}) where {T <: AbstractFloat}
+    R² = radius²(model)
+    Δ² = abs2(model, x)
     return Δ² .- R²
 end
 
@@ -152,35 +231,35 @@ A kind of proxy probability of `P(x|θ) ∈ [0,1]`, where
 + "sqtriangle", `P(x|θ) = max(0, 1 - γ Δ²/R²)`
 + "dirac",      `P(x|θ) = 𝟙[γΔ ≤ R]`
 """
-function svddprob(Model::SVDD, x::Matrix{T}, g::Real=1.0f0; type::String="gaussian") where {T <: AbstractFloat}
+function svddprob(model::SVDD, x::Matrix{T}, g::Real=1.0f0; type::String="gaussian") where {T <: AbstractFloat}
     o  = zero(T)
     l  = one(T)
     γ  = abs(T(g))
-    R  = radius(Model)
-    R² = radius²(Model)
+    R  = radius(model)
+    R² = radius²(model)
     if isequal(type, "gaussian") # exp(-γ Δ²/R²)
         r = - γ / R²
-        Δ² = abs2(Model, x)
+        Δ² = abs2(model, x)
         return @. exp(r * Δ²)
     end
     if isequal(type, "laplace") # exp(-γ Δ/R)
         r = - γ / R
-        Δ = abs(Model, x)
+        Δ = abs(model, x)
         return @. exp(r * Δ)
     end
     if isequal(type, "triangle") # max(0, 1 - γ Δ/R)
-        Δ = abs(Model, x)
+        Δ = abs(model, x)
         r = -clamp(γ, o, l) / R
         return @. max(o, l + r * Δ)
     end
     if isequal(type, "sqtriangle") # max(0, 1 - γ Δ²/R²)
-        Δ² = abs2(Model, x)
+        Δ² = abs2(model, x)
         r = -clamp(γ, o, l) / R²
         return @. max(o, l + r * Δ²)
     end
     if isequal(type, "dirac") # 1 if γΔ ≤ R, otherwise 0
         r = clamp(γ, o, l)
-        Δ² = abs2(Model, x)
+        Δ² = abs2(model, x)
         return @. r*Δ² ≤ R²
     end
     error("$type is not supported yet")
