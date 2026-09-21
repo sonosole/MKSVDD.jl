@@ -3,10 +3,12 @@
               minerr::T=T(1e-3),
               maxiters::Int=100,
               verbose::Bool=false) -> c
-Return the estimated `c`enter of model via fixed point method.
+Return the estimated `c`enter of model via fixed point method by solving
 
+    min‖ϕ(c) - ∑ⱼαⱼ ϕ(xⱼ)‖², so
     c = ∑ᵢ wᵢ * xᵢ, where 
     wᵢ = αᵢ / ∑ⱼαⱼ k(c, xⱼ) and xᵢ, xⱼ ∈  SupportVectors
+    s.t. ∑ⱼαⱼ = 1, otherwise it's not center
 
 `c` is iterated until it doesn't change much by `minerr` or `maxiters`. If 
 `verbose` then print the iteration process.
