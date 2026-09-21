@@ -17,6 +17,9 @@ export radius, radius², nsvs, alphas
 export minratio, maxratio
 export absratio, abs2ratio, sqdiff, svddprob
 
+include("SVDD-preimage.jl")
+export rbfpreimage
+
 include("SVDD-centre.jl")
 export centre, rbfcentre
 

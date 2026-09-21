@@ -18,6 +18,11 @@ end
 
 
 """
+    Return the kernel function of `model`
+"""
+@inline kernelf(model::SVDD) = model.kernel
+
+"""
     Return the number of support vectors
 """
 @inline nsvs(model::SVDD) = length(model.𝟐wᵀ)

@@ -22,25 +22,10 @@ function rbfcentre(model::SVDD{T};
                    minerr::T=T(1e-3),
                    maxiters::Int=100,
                    verbose::Bool=false) where T
-    xsvs = svs(model)
+    x = svs(model)
     α = alphas(model)
-    k = model.kernel
-    N = nsvs(model)
-    N⁻¹ = T(inv(N))  # normalize err, so size independent
-    c = xsvs[:,1:1]  # center's start point
-    err = typemax(T)
-    cnt = 0
-    while err > minerr
-        cnt += 1
-        cnt > maxiters && break
-        w = α .* k(c, xsvs)
-        s = (w ./ sum(w)) .* xsvs
-        μ = sum(s, dims=2)
-        err = sum(abs.(c - μ)) * N⁻¹
-        c .= μ
-        verbose && println("iter $cnt, err=$err")
-    end
-    return c
+    k = kernelf(model)
+    return rbfpreimage(k, α, x; minerr, maxiters, verbose)
 end
 
 
