@@ -17,6 +17,9 @@ export radius, radius², nsvs, alphas
 export minratio, maxratio
 export absratio, abs2ratio, sqdiff, svddprob
 
+include("SVDD-centre.jl")
+export centre, rbfcentre
+
 include("SVDD-SMO.jl")
 export smosvdd
 
