@@ -62,7 +62,8 @@ end
 
 """
     kcentreids(Δ::Matrix{T},
-               K::Int;niters::Int=5,
+               K::Int;
+               niters::Int=5,
                verbose::Bool=false) -> ids_of_K_centers::Vector{Int}, vecids_of_K_centers::Vector{Vector{Int}}
 Return indexes of `K` centers and its coresponding samples indexes 
 belongs to each cluster according to distance matrix `Δ`.
@@ -82,4 +83,55 @@ function kcentres(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) whe
     end
     return c, kids
 end
+
+
+"""
+    kclusters(Δ::Matrix{T},
+              K::Int;
+              niters::Int=5,
+              verbose::Bool=false) -> vecids_of_K_centers::Vector{Vector{Int}}
+Return samples indexes belongs to each cluster according to distance matrix `Δ`.
++ `niters` is the number of total iterations
++ if `verbose`, print the k-medoids loss
+"""
+function kclusters(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) where T
+    c1, L1 = kcentreids(Δ, K; niters, verbose)
+    c2, L2 = kcentreids(Δ, K; niters, verbose)
+    c = L1 < L2 ? c1 : c2
+    idxmin = argmin(Δ[c,:], dims=1)
+    cids = vec(@. first(Tuple(idxmin)))
+    kids = Vector{Vector{Int}}(undef,K)
+    for k ∈ 1:K
+        # idxs belong to cluster k, i.e. [1,3,9]
+        kids[k] = findall(u->u==k, cids)
+    end
+    return kids
+end
+
+
+function rbfprune(model::SVDD{T,N},
+                      K::Int;
+                 kiters::Int=5,
+                 citers::Int=100,
+                 minerr::T=T(1e-3),
+                verbose::Bool=false) where T
+    x = svs(model)
+    𝕜 = kernelf(model)
+    Δ = distmat(𝕜, x)
+    α = alphas(model)
+    kids = kclusters(Δ, K; niters=kiters, verbose)
+    D = size(x, 1)
+    C = similar(x, D, K)
+    a = simliar(α, 1, K)
+    for k = 1:K
+        choosen = kids[k]
+        αᵏ = α[1,choosen]
+        ∑αᵏ = sum(αᵏ)
+        a[1,k]  = ∑αᵏ
+        C[:,k] .= rbfpreimage(𝕜, αᵏ .* inv(∑αᵏ), x[:,choosen]; maxiter=citers, minerr, verbose)
+    end
+    return SVDD{T,N}(radius²(model), cdotc(model), a, C, 𝕜)
+end
+
+
 
