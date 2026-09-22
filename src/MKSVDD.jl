@@ -13,7 +13,7 @@ export ispsd
 
 include("SVDD.jl")
 export SVDD
-export radius, radius², nsvs, alphas
+export radius, radius², nsvs, svs, alphas, cdotc, kernelf
 export minratio, maxratio
 export absratio, abs2ratio, sqdiff, svddprob
 

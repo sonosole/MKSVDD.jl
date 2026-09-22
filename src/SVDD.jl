@@ -59,6 +59,17 @@ end
     return model.R²
 end
 
+
+"""
+    cdotc(model::SVDD)
+Return the inner product of sphere center, i.e.
+        cᵩ⋅cᵩ = <cᵩ, cᵩ>
+"""
+@inline function cdotc(model::SVDD)
+    return model.wᵀKw
+end
+
+
 function Base.show(io::IO, ::MIME"text/plain", model::SVDD{T,N}) where {T, N}
     C = nsvs(model)
     R = radius(model)
