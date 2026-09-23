@@ -10,7 +10,6 @@ Return the estimated pre-imagge via fixed point method by solving
     min‖ϕ(z) - ∑ⱼαⱼ ϕ(xⱼ)‖², so
     z = ∑ᵢ wᵢ * xᵢ, where 
     wᵢ = αᵢ / ∑ⱼαⱼ k(z, xⱼ) and xᵢ, xⱼ ∈  x
-    if ∑ⱼαⱼ = 1, then ϕ(z) is the center of inputs ϕ.(x), otherwise it's not center
 
 `z` is iterated until it doesn't change much by `minerr` or `maxiters`. If 
 `verbose` then print the iteration process.
@@ -32,7 +31,7 @@ function rbfpreimage(k::Function,
     @assert cα == N "#coefficients doesn't match #features"
     N⁻¹ = T(inv(N))  # normalize err, so size independent
     j = rand(1:N)
-    z = x[:,j:j]     # a random start from given samples
+    z = getcol(x,j)  # a random start from given samples
     err = typemax(T)
     cnt = 0
     verbose && println("─────── iter pre-image process ────────")
@@ -88,7 +87,7 @@ function trackx2y(k::Function, x::Matrix{T}, y::Matrix{T}, n::Int=100) where T
     for (i, a) ∈ enumerate(range(0.0, 1.0, n))
         α[1] = l - a
         α[2] = a
-        z[:,i:i] = rbfpreimage(k, α, u)
+        z[:,i:i] .= rbfpreimage(k, α, u)
     end
     return z
 end

@@ -71,8 +71,7 @@ end
 
 """
     cdotc(model::SVDD)
-Return the inner product of sphere center, i.e.
-        cᵩ⋅cᵩ = <cᵩ, cᵩ>
+Return the inner product of sphere center cᵩ
 """
 @inline function cdotc(model::SVDD)
     return model.wᵀKw
