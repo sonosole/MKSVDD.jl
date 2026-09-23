@@ -31,9 +31,11 @@ function rbfpreimage(k::Function,
     @assert rα == 1 "the coefficients shall be a 1*N shaped matrix"
     @assert cα == N "#coefficients doesn't match #features"
     N⁻¹ = T(inv(N))  # normalize err, so size independent
-    z = x[:,1:1]
+    j = rand(1:N)
+    z = x[:,j:j]     # a random start from given samples
     err = typemax(T)
     cnt = 0
+    verbose && println("─────── iter pre-image process ────────")
     while err > minerr
         cnt += 1
         cnt > maxiters && break
