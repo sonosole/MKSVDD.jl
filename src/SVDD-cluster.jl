@@ -2,7 +2,7 @@
     distmat(kernel::Function, x::AbstractArray) -> Δ
 Return squre shaped distance matrix by `kernel`.
 
-    Δ[i,j] = K[i,i] + K[j,j] - 2K[i,j]
+    Δ[i,j] = K[i,i] + K[j,j] - 2K[i,j] where K[i,j] = kernel(xᵢ, xⱼ)
 """
 function distmat(kernel::Function, x::AbstractArray)
     K = kernel(x, x)
@@ -22,32 +22,32 @@ end
 """
     kcentreids(Δ::Matrix{T},
                K::Int;
-               niters::Int=5,
-               verbose::Bool=false) -> ids_of_K_centers::Vector{Int}, LOSS::T
+          niters::Int=5,
+         verbose::Bool=false) -> ids_of_K_centers::Vector{Int}, LOSS::T
 Return indexes of `K` centers according to distance matrix `Δ` and cluster `LOSS`
-+ `niters` is the number of total iterations
++ `niters` is the number of iterations
 + if `verbose`, print the k-medoids loss
 """
 function kcentreids(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) where T
     N, M = size(Δ);
     @assert N == M "Distance Matrix shall be squred, but got $N*$M"
     @assert N > K  "No enough data to train"
-    c = rand(shuffle(1:N), K)    # choose K svs as init start
+    c = shuffle(1:N)[1:K]    # choose K svs as init start
     t = 0
     L = zero(T)
+    verbose && println("─────── iter $K-medoids by distance matrix ────────")
     while t < niters
         t = t + 1
         d = Δ[c,:] # distances to center c, size K*N
         # ╭────────────── e-step ──────────────────╮
         valmin, idxmin = findmin(d, dims=1)
         L = sum(valmin)
-        verbose && println(L)
+        verbose && println("iter $t, cluster-loss=$L")
         # record which center it belongs to
         cids = vec(@. first(Tuple(idxmin)))
         # ╭──────────── m-step ───────────────╮
         for k ∈ 1:K
             kidxs = findall(u->u==k, cids) # idx belong to cluster k, i.e. [1,3,9,...,maxid≤N]
-            isempty(kidxs) && continue
             kdist = Δ[kidxs, kidxs]        # distance matrix inside cluster k
             # ╭─── 在 k 簇内以各个点为中心，所有点到各个中心的距离之和 ───╮
             # ╰───── 将距离之和最小的那个点作为 k 簇的新中心 ────────────╯
@@ -61,19 +61,19 @@ end
 
 
 """
-    kcentreids(Δ::Matrix{T},
-               K::Int;
-               niters::Int=5,
-               verbose::Bool=false) -> ids_of_K_centers::Vector{Int}, vecids_of_K_centers::Vector{Vector{Int}}
+    kcentres(Δ::Matrix{T},
+             K::Int;
+        niters::Int=5,
+       verbose::Bool=false) -> ids_of_K_centers::Vector{Int}, vecids_of_K_centers::Vector{Vector{Int}}
 Return indexes of `K` centers and its coresponding samples indexes 
 belongs to each cluster according to distance matrix `Δ`.
 + `niters` is the number of total iterations
 + if `verbose`, print the k-medoids loss
 """
 function kcentres(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) where T
-    c1, L1 = kcentreids(Δ, K; niters, verbose)
-    c2, L2 = kcentreids(Δ, K; niters, verbose)
-    c = L1 < L2 ? c1 : c2
+    c₁, L₁ = kcentreids(Δ, K; niters, verbose)
+    c₂, L₂ = kcentreids(Δ, K; niters, verbose)
+    c = L₁ < L₂ ? c₁ : c₂
     idxmin = argmin(Δ[c,:], dims=1)
     cids = vec(@. first(Tuple(idxmin)))
     kids = Vector{Vector{Int}}(undef,K)
@@ -88,16 +88,16 @@ end
 """
     kclusters(Δ::Matrix{T},
               K::Int;
-              niters::Int=5,
-              verbose::Bool=false) -> vecids_of_K_centers::Vector{Vector{Int}}
+         niters::Int=5,
+        verbose::Bool=false) -> vecids_of_K_centers::Vector{Vector{Int}}
 Return samples indexes belongs to each cluster according to distance matrix `Δ`.
 + `niters` is the number of total iterations
 + if `verbose`, print the k-medoids loss
 """
 function kclusters(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) where T
-    c1, L1 = kcentreids(Δ, K; niters, verbose)
-    c2, L2 = kcentreids(Δ, K; niters, verbose)
-    c = L1 < L2 ? c1 : c2
+    c₁, L₁ = kcentreids(Δ, K; niters, verbose)
+    c₂, L₂ = kcentreids(Δ, K; niters, verbose)
+    c = L₁ < L₂ ? c₁ : c₂
     idxmin = argmin(Δ[c,:], dims=1)
     cids = vec(@. first(Tuple(idxmin)))
     kids = Vector{Vector{Int}}(undef,K)
@@ -106,31 +106,6 @@ function kclusters(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) wh
         kids[k] = findall(u->u==k, cids)
     end
     return kids
-end
-
-
-function rbfprune(model::SVDD{T,N},
-                      K::Int;
-                 kiters::Int=5,
-                 citers::Int=100,
-                 minerr::T=T(1e-3),
-                verbose::Bool=false) where T
-    x = svs(model)
-    𝕜 = kernelf(model)
-    Δ = distmat(𝕜, x)
-    α = alphas(model)
-    kids = kclusters(Δ, K; niters=kiters, verbose)
-    D = size(x, 1)
-    C = similar(x, D, K)
-    a = simliar(α, 1, K)
-    for k = 1:K
-        choosen = kids[k]
-        αᵏ = α[1,choosen]
-        ∑αᵏ = sum(αᵏ)
-        a[1,k]  = ∑αᵏ
-        C[:,k] .= rbfpreimage(𝕜, αᵏ .* inv(∑αᵏ), x[:,choosen]; maxiter=citers, minerr, verbose)
-    end
-    return SVDD{T,N}(radius²(model), cdotc(model), a, C, 𝕜)
 end
 
 
