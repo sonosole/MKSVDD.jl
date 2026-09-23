@@ -86,6 +86,19 @@ function Base.show(io::IO, ::MIME"text/plain", model::SVDD{T,N}) where {T, N}
 end
 
 
+@inline firstcol(x::AbstractMatrix)       = x[:,1:1]
+@inline getcol(x::AbstractMatrix, n::Int) = x[:,n:n]
+
+"""
+    onesv(model::SVDD{T}) -> s::Matrix{T}
+Return a normal support vector on the surface of sphere 
+corresponding to the minimum lagrange multiplier.
+"""
+@inline function onesv(model::SVDD)
+    n = argmin(vec(model.𝟐wᵀ))
+    return model.svecs[:,n:n]
+end
+
 # inplace sqrt
 @inline function sqrt!(x::AbstractArray)
     x .= sqrt.(x)

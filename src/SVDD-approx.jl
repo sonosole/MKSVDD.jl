@@ -37,7 +37,7 @@ function rbfksvdd(model::SVDD{T,N},
     Kzz = 𝕜(z, z)       # K*K
     Kzs = 𝕜(z, s)       # K*N
     β = Kzz \ (Kzs * α) # K*1
-    b = s[:,1:1]
+    b = onesv(model)
     Kbb = 𝕜(b, b) # 1*1
     Kzb = 𝕜(z, b) # K*1
     βKβ = β' * Kzz * β
