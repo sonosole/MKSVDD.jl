@@ -22,10 +22,9 @@ function rbfcentre(model::SVDD{T};
                    minerr::T=T(1e-3),
                    maxiters::Int=100,
                    verbose::Bool=false) where T
-    x = svs(model)
-    α = alphas(model)
     k = kernelf(model)
-    return rbfpreimage(k, α, x; minerr, maxiters, verbose)
+    x = svs(model)
+    return rbfpreimage(k, alphasᵀ(model), x; minerr, maxiters, verbose)
 end
 
 

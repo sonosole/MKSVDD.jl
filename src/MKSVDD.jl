@@ -1,10 +1,11 @@
-module MKSVDD
+# module MKSVDD
 
 using Distances
 using JuMP
 using COSMO
+using Random
 
-import LinearAlgebra: diag, lmul!
+import LinearAlgebra: diag, lmul!, \
 
 include("rules.jl")
 export Mercer
@@ -13,7 +14,7 @@ export ispsd
 
 include("SVDD.jl")
 export SVDD
-export radius, radius², nsvs, svs, alphas, cdotc, kernelf
+export radius, radius², nsvs, svs, alphasᵀ, alphas, cdotc, kernelf
 export minratio, maxratio
 export absratio, abs2ratio, sqdiff, svddprob
 
@@ -23,6 +24,9 @@ export rbfpreimage
 include("SVDD-centre.jl")
 export centre, rbfcentre
 
+include("SVDD-cluster.jl")
+export distmat, kcentreids, kcentres, kclusters, rbfprune, rbfksvdd
+
 include("SVDD-SMO.jl")
 export smosvdd
 
@@ -30,4 +34,4 @@ include("SVDD-Optimizer.jl")
 export svdd, svddlabel
 
 
-end # module MKSVDD
+# end # module MKSVDD

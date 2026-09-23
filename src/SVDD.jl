@@ -39,11 +39,20 @@ Base.length(model::SVDD) = length(model.𝟐wᵀ)
 
 
 """
+    alphasᵀ(m::SVDD{T}) -> αᵀ::Matrix{T}
+Return the lagrange multipliers with 1*N shape
+"""
+@inline function alphasᵀ(model::SVDD{T}) where T
+    return model.𝟐wᵀ .* T(0.5)
+end
+
+
+"""
     alphas(m::SVDD{T}) -> α::Matrix{T}
-Return the lagrange multipliers
+Return the lagrange multipliers with N*1 shape
 """
 @inline function alphas(model::SVDD{T}) where T
-    return model.𝟐wᵀ .* T(0.5)
+    return reshape(model.𝟐wᵀ .* T(0.5), :, 1)
 end
 
 
