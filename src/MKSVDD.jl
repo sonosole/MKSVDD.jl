@@ -25,7 +25,10 @@ include("SVDD-centre.jl")
 export centre, rbfcentre
 
 include("SVDD-cluster.jl")
-export distmat, kcentreids, kcentres, kclusters, rbfprune, rbfksvdd
+export distmat, kcentreids, kcentres, kclusters
+
+include("SVDD-approx.jl")
+export rbfksvdd
 
 include("SVDD-SMO.jl")
 export smosvdd

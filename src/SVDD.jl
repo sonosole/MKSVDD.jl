@@ -1,8 +1,8 @@
 mutable struct SVDD{T <: AbstractFloat, N}
     R²     :: T
     wᵀKw   :: T
-    𝟐wᵀ    :: Matrix{T}
-    svecs  :: Matrix{T}
+    𝟐wᵀ    :: Matrix{T} # shape 1 * Nums
+    svecs  :: Matrix{T} # shape Dims * Nums
     kernel :: Function
     function SVDD{T,N}(R²::T,
                      wᵀKw::T,
