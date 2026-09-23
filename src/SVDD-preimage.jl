@@ -40,7 +40,8 @@ function rbfpreimage(k::Function,
         cnt += 1
         cnt > maxiters && break
         w = α .* k(z, x)
-        s = (w ./ sum(w)) .* x
+        ∑ = sum(w)
+        s = (w .* inv(∑)) .* x
         μ = sum(s, dims=2)
         err = sum(abs.(z - μ)) * N⁻¹
         z .= μ
@@ -51,4 +52,44 @@ end
 
 
 
+"""
+    trackx2y(kernel::Function, x::Matrix{T}, y::Matrix{T}, n::Int=100) -> z::Matrix{T}
+Return the trace of `x` → `y` according to the trace of `ϕ(x)` → `ϕ(y)`, 
+the path is stored in `z`'s `1:n` columns. `x` and `y` are both one column with 
+the same dimentions. The path in `ϕ()` space is evenly spaced but usually nonlinearly 
+in the original euclidean space.
+
+# Example
+```julia
+begin
+    kf(x::Matrix, y::Matrix) = exp.(-.1pairwise(SqEuclidean(), x, y, dims=2))
+    x1 = reshape([-1.2,-1.4],:,1)
+    x2 = reshape([1.5,  0.5],:,1)
+    ns = 55
+    xs = trackx2y(kf, x1, x2, ns)
+    scatter(xs[1,:],xs[2,:], label="trace", 
+                              framestyle=:origin,
+                              color=:green,
+                              markershape=:circle,
+                              markersize=1.8,
+                              markerstrokewidth=0)
+end
+```
+"""
+function trackx2y(k::Function, x::Matrix{T}, y::Matrix{T}, n::Int=100) where T
+    xr,xc = size(x); @assert xc==1 "it's not a src point"
+    yr,yc = size(y); @assert yc==1 "it's not a dst point"
+    @assert xr==yr "dimention mismatch"
+    u = hcat(x, y)
+    a = range(0.0, 1.0, n)
+    α = zeros(1, 2)
+    z = similar(x, xr, n)
+    l = one(T)
+    for (i, a) ∈ enumerate(range(0.0, 1.0, n))
+        α[1] = l - a
+        α[2] = a
+        z[:,i:i] = rbfpreimage(k, α, u)
+    end
+    return z
+end
 
