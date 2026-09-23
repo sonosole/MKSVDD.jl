@@ -31,7 +31,10 @@ Return indexes of `K` centers according to distance matrix `Δ` and cluster `LOS
 function kcentreids(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) where T
     N, M = size(Δ);
     @assert N == M "Distance Matrix shall be squred, but got $N*$M"
-    @assert N > K  "No enough data to train"
+    @assert N ≥ K  "No enough data to train"
+    if isequal(N, K)
+        return collect(1:N), zero(T)
+    end
     c = shuffle(1:N)[1:K]    # choose K svs as init start
     t = 0
     L = zero(T)
