@@ -18,22 +18,22 @@ export radius, radius², nsvs, svs, alphasᵀ, alphas, cdotc, kernelf
 export minratio, maxratio
 export absratio, abs2ratio, sqdiff, svddprob
 
-include("SVDD-preimage.jl")
+include("preimage.jl")
 export rbfpreimage, trackx2y
 
-include("SVDD-centre.jl")
+include("centre.jl")
 export centre, rbfcentre
 
-include("SVDD-cluster.jl")
+include("cluster.jl")
 export distmat, kcentreids, kcentres, kclusters
 
-include("SVDD-approx.jl")
+include("approx.jl")
 export rbfksvdd
 
-include("SVDD-SMO.jl")
+include("train-smo.jl")
 export smosvdd
 
-include("SVDD-Optimizer.jl")
+include("train-cosmo.jl")
 export svdd, svddlabel
 
 
