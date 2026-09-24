@@ -112,4 +112,7 @@ function kclusters(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) wh
 end
 
 
-
+# TODO: 不用距离矩阵，因为样本量 N 大的时候计算量太大
+# 距离矩阵计算量 N*N
+# 实际每次迭代 K 个中心，计算量 K*N, 迭代次数一般五次
+# (N*N)/(K*N*5)=N/K/5, N=1000, K=5, 就是40倍
