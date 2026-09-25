@@ -28,7 +28,7 @@ include("cluster.jl")
 export distmat, kcentreids, kcentres, kclusters
 
 include("approx.jl")
-export rbfksvdd
+export rbfksvdd, basecoeffs
 
 include("train-smo.jl")
 export smosvdd

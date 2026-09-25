@@ -20,8 +20,8 @@ Return the estimated pre-imagge via fixed point method by solving
     so `z` might be unstable and not unique.
 """
 function rbfpreimage(k::Function,
-                     α::Matrix{T},
-                     x::Matrix{T};
+                     α::Matrix{T}, # shape of 1*N
+                     x::Matrix{T}; # shape of D*N
                      minerr::T=T(1e-3),
                      maxiters::Int=100,
                      verbose::Bool=false) where T

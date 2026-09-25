@@ -92,7 +92,7 @@ end
     kclusters(Δ::Matrix{T},
               K::Int;
          niters::Int=5,
-        verbose::Bool=false) -> vecids_of_K_centers::Vector{Vector{Int}}
+        verbose::Bool=false) -> ids_of_K_clusters::Vector{Vector{Int}}
 Return samples indexes belongs to each cluster according to distance matrix `Δ`.
 + `niters` is the number of total iterations
 + if `verbose`, print the k-medoids loss
