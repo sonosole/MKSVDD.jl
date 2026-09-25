@@ -17,6 +17,7 @@ export SVDD
 export radius, radius², nsvs, svs, alphasᵀ, alphas, cdotc, kernelf
 export minratio, maxratio
 export absratio, abs2ratio, sqdiff, svddprob
+export dcenters, closeness
 
 include("preimage.jl")
 export rbfpreimage, trackx2y

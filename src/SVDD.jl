@@ -256,6 +256,51 @@ end
 
 
 """
+    closeness(m1::SVDD, m2::SVDD) -> c::Float64
+The closeness of super-spheres between `m1`'s and `m2`'s by 
+
+    c = max(0, 1 - d/(r₁ + r₂)), where 
+    d is the distance between two spheres' centers.
+    r₁ is the radius of the first sphere
+    r₂ is the radius of the second sphere
+
+when `c` == 0, they are separeted, \n
+when `c` == 1, they share the same center, but smaller one is inside the bigger one, \n
+when 0 < `c` < 1, they are overlapped
+"""
+function closeness(m1::SVDD, m2::SVDD)
+    𝕜 = kernelf(m1)
+    k = kernelf(m2)
+    @assert isequal(𝕜, k) "$m1 and $m2 don't have the same kernel function"
+    r₁ = radius(m1)
+    r₂ = radius(m2)
+    β = alphasᵀ(m1); z = svs(m1)
+    α = alphasᵀ(m2); x = svs(m2)
+    # ‖∑ⱼβⱼ*ϕ(zⱼ) - ∑ᵢαᵢ*ϕ(xᵢ)‖
+    δ = β*𝕜(z,z)*β' + α*𝕜(x,x)*α' - 2α*𝕜(x,z)*β'
+    d = sqrt(abs(first(δ)))
+    return max(0.0, 1.0 - d / (r₁ + r₂))
+end
+
+
+"""
+    dcenters(m1::SVDD, m2::SVDD) -> d::Float64
+The distance of super-spheres' centers between `m1`'s and `m2`'s by 
+"""
+function dcenters(m1::SVDD, m2::SVDD)
+    𝕜 = kernelf(m1)
+    k = kernelf(m2)
+    @assert isequal(𝕜, k) "$m1 and $m2 don't have the same kernel function"
+    β = alphasᵀ(m1); z = svs(m1)
+    α = alphasᵀ(m2); x = svs(m2)
+    # ‖∑ⱼβⱼ*ϕ(zⱼ) - ∑ᵢαᵢ*ϕ(xᵢ)‖
+    δ = β*𝕜(z,z)*β' + α*𝕜(x,x)*α' - 2α*𝕜(x,z)*β'
+    return sqrt(abs(first(δ)))
+end
+
+
+
+"""
     svddprob(θ::SVDD, x::Matrix{<:AbstractFloat}, γ::Real=1.0f0; type::String="gaussian")
 A kind of proxy probability of `P(x|θ) ∈ [0,1]`, where
 + `γ` > 0 tunes the flatness of the distribution, the smaller the flatter.
