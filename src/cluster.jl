@@ -72,6 +72,26 @@ Return indexes of `K` centers and its coresponding samples indexes
 belongs to each cluster according to distance matrix `Δ`.
 + `niters` is the number of total iterations
 + if `verbose`, print the k-medoids loss
+# Example
+```julia
+begin
+    using Plots
+    xp = hcat(0.9rand(2, 50), 
+              0.3randn(2, 199) .+ [1.5;-1.5], 
+              0.6randn(2, 150) .+ [-1.5;1.5],
+              0.3randn(2, 112) .- [3.5;3.5]);
+
+    ker(x,y) = exp.(-(1/100) .* pairwise(SqEuclidean(), x, y, dims=2))
+    K = 4
+    colors = [:green, :red, :purple, :blue]
+    c, cids = kcentres(distmat(ker, xp), K)
+    scatter()
+    for j = 1:K
+        scatter!(xp[1,cids[j]], xp[2,cids[j]], label="cluster-\$j", color=colors[j], markershape=:circle, markersize=1.8, markerstrokewidth=0)
+        scatter!(xp[1,c[j]:c[j]], xp[2,c[j]:c[j]], label="center-\$j", color=colors[j], markershape=:circle, markersize=3.8)
+    end
+end
+```
 """
 function kcentres(Δ::Matrix{T}, K::Int; niters::Int=5, verbose::Bool=false) where T
     c₁, L₁ = kcentreids(Δ, K; niters, verbose)
