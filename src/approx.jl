@@ -33,7 +33,7 @@ end
 
 
 
-# 从提供的特征 x 中选 K 个基向量来逼近球心
+# 从提供的特征 x 中选 K 个基向量来逼近球心，只更新 β 不更新 z
 """
     rbfksvdd(model::SVDD{T},
           features::Matrix{T},
@@ -74,7 +74,12 @@ function rbfksvdd(model::SVDD{T,N},
     Kzb = 𝕜(z, b) # K*1
     βKβ = β' * Kzz * β
     R²  = Kbb + βKβ - 2β' * Kzb # ‖ϕ(b) - ∑ᵢβᵢ*ϕ(zᵢ)‖²
-    return SVDD{T,N}(first(R²), first(βKβ), reshape(β,1,:), z, 𝕜)
+    kmodel = SVDD{T,N}(first(R²), first(βKβ), reshape(β,1,:), z, 𝕜)
+    if verbose
+        d = dcenters(model, kmodel)
+        println("── centers distance: $d ──")
+    end
+    return kmodel
 end
 
 
