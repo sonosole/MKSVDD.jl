@@ -57,6 +57,15 @@ end
 
 
 """
+    vecalphas(m::SVDD{T}) -> α::Vector{T}
+Return the lagrange multipliers as a vector.
+"""
+@inline function vecalphas(model::SVDD{T}) where T
+    return vec(model.𝟐wᵀ .* T(0.5))
+end
+
+
+"""
     radius(model::SVDD{T}) -> r::T
 Returns the radius of the hypersphere
 """
