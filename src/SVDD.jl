@@ -280,7 +280,7 @@ when 0 < `c` < 1, they are overlapped
 function closeness(m1::SVDD, m2::SVDD)
     𝕜 = kernelf(m1)
     k = kernelf(m2)
-    @assert isequal(𝕜, k) "$m1 and $m2 don't have the same kernel function"
+    @assert isequal(𝕜, k) "they don't have the same kernel function"
     r₁ = radius(m1)
     r₂ = radius(m2)
     β = alphasᵀ(m1); z = svs(m1)
