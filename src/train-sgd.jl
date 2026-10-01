@@ -81,7 +81,7 @@ function sgdsvdd(x::Matrix{T},
             Kij = ker(Xᵢ, Xᵢ)
             αᵀKα = αᵢ * Kij * αᵢ'
             R²   = Kss - 2αᵢ*Kis + αᵀKα
-            return SVDD{T,1}(first(R²), first(αᵀKα), αᵢ, Xᵢ, ker)
+            return SVDD{T,1}(first(R²), first(αᵀKα), αᵢ, Xᵢ, ker), γ
         end
     end
 end
