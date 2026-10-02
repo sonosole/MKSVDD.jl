@@ -237,7 +237,6 @@ function rebase(model::SVDD{T,N},
     else
         rebase(T(γ), α, x, z; lr, maxiters, minerr)
     end
-    println("new r: ",r)
     println("═══ centers distance: $d ═══")
 
     # ──── re-estimate R² and <cᵩ, cᵩ> ────
